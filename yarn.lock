@@ -2236,6 +2236,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@polkadot/app-fin-comm@workspace:packages/page-fin-comm":
+  version: 0.0.0-use.local
+  resolution: "@polkadot/app-fin-comm@workspace:packages/page-fin-comm"
+  dependencies:
+    "@babel/runtime": ^7.11.2
+    "@polkadot/react-components": 0.55.0-beta.13
+    "@polkadot/react-query": 0.55.0-beta.13
+  languageName: unknown
+  linkType: soft
+
 "@polkadot/app-generic-asset@workspace:packages/page-generic-asset":
   version: 0.0.0-use.local
   resolution: "@polkadot/app-generic-asset@workspace:packages/page-generic-asset"
@@ -2279,6 +2289,16 @@ __metadata:
   dependencies:
     "@babel/runtime": ^7.12.1
     "@polkadot/react-components": 0.63.2-7
+  languageName: unknown
+  linkType: soft
+
+"@polkadot/app-root-comm@workspace:packages/page-root-comm":
+  version: 0.0.0-use.local
+  resolution: "@polkadot/app-root-comm@workspace:packages/page-root-comm"
+  dependencies:
+    "@babel/runtime": ^7.11.2
+    "@polkadot/react-components": 0.55.0-beta.13
+    "@polkadot/react-query": 0.55.0-beta.13
   languageName: unknown
   linkType: soft
 

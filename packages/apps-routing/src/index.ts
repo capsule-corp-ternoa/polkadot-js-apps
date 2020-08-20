@@ -13,11 +13,13 @@ import council from './council';
 import democracy from './democracy';
 import explorer from './explorer';
 import extrinsics from './extrinsics';
+import fincomm from './fincomm';
 import genericAsset from './generic-asset';
 import js from './js';
 import parachains from './parachains';
 import poll from './poll';
 import rpc from './rpc';
+import rootcomm from './rootcomm';
 import settings from './settings';
 import signing from './signing';
 import society from './society';
@@ -28,7 +30,7 @@ import techcomm from './techcomm';
 import transfer from './transfer';
 import treasury from './treasury';
 
-export default function create (t: TFunction): Routes {
+export default function create(t: TFunction): Routes {
   return [
     accounts(t),
     addresses(t),
@@ -42,6 +44,8 @@ export default function create (t: TFunction): Routes {
     council(t),
     treasury(t),
     techcomm(t),
+    fincomm(t),
+    rootcomm(t),
     parachains(t),
     society(t),
     calendar(t),
