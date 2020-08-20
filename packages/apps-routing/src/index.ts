@@ -16,10 +16,12 @@ import council from './council';
 import democracy from './democracy';
 import explorer from './explorer';
 import extrinsics from './extrinsics';
+import fincomm from './fincomm';
 import genericAsset from './generic-asset';
 import js from './js';
 import parachains from './parachains';
 import poll from './poll';
+import rootcomm from './rootcomm';
 import settings from './settings';
 import society from './society';
 import staking from './staking';
@@ -30,7 +32,7 @@ import toolbox from './toolbox';
 import transfer from './transfer';
 import treasury from './treasury';
 
-export default function create (t: <T = string> (key: string, text: string, options: { ns: string }) => T): Routes {
+export default function create(t: <T = string> (key: string, text: string, options: { ns: string }) => T): Routes {
   return appSettings.uiMode === 'light'
     ? [
       // dashboard,
@@ -62,6 +64,8 @@ export default function create (t: <T = string> (key: string, text: string, opti
       council(t),
       treasury(t),
       techcomm(t),
+      fincomm(t),
+      rootcomm(t),
       parachains(t),
       society(t),
       null,
