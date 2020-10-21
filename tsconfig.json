@@ -35,15 +35,12 @@
       "@polkadot/app-addresses/*": [
         "packages/page-addresses/src/*"
       ],
-<<<<<<< HEAD
       "@polkadot/app-calendar": [
         "packages/page-calendar/src"
       ],
       "@polkadot/app-calendar/*": [
         "packages/page-calendar/src/*"
       ],
-=======
->>>>>>> d7acddbff... (to dedup) duplicate committees
       "@polkadot/app-claims": [
         "packages/page-claims/src"
       ],
@@ -62,15 +59,6 @@
       "@polkadot/app-council/*": [
         "packages/page-council/src/*"
       ],
-<<<<<<< HEAD
-=======
-      "@polkadot/app-dashboard": [
-        "packages/page-dashboard/src"
-      ],
-      "@polkadot/app-dashboard/*": [
-        "packages/page-dashboard/src/*"
-      ],
->>>>>>> d7acddbff... (to dedup) duplicate committees
       "@polkadot/app-democracy": [
         "packages/page-democracy/src"
       ],
