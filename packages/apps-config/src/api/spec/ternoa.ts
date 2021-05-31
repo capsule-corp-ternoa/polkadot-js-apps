@@ -12,9 +12,11 @@ const definitions: OverrideBundleDefinition = {
       // on all versions
       minmax: [0, undefined],
       types: {
+        AccountDataOf: 'AccountData',
         Address: 'AccountId',
         NFTId: 'u32',
         NFTIdOf: 'NFTId',
+        NFTSeriesId: 'u32',
         NFTData: {
           owner: 'AccountId',
           details: 'NFTDetails',
@@ -22,9 +24,15 @@ const definitions: OverrideBundleDefinition = {
           locked: 'bool'
         },
         NFTDetails: {
-          offchain_uri: 'Vec<u8>'
+          offchain_uri: 'Vec<u8>',
+          series_id: 'NFTSeriesId',
+          is_capsule: 'bool'
         },
-        LookupSource: 'AccountId'
+        LookupSource: 'AccountId',
+        NFTSeriesDetails: {
+          owner: 'AccountId',
+          nfts: 'Vec<NFTId>'
+        },
       }
     }
   ]

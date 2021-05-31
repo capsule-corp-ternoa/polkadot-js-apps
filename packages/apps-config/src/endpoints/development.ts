@@ -13,7 +13,7 @@ interface EnvWindow {
   }
 }
 
-export function createCustom (t: TFunction): LinkOption[] {
+export function createCustom(t: TFunction): LinkOption[] {
   const WS_URL = (
     (typeof process !== 'undefined' ? process.env?.WS_URL : undefined) ||
     (typeof window !== 'undefined' ? (window as EnvWindow).process_env?.WS_URL : undefined)
@@ -37,7 +37,7 @@ export function createCustom (t: TFunction): LinkOption[] {
     : [];
 }
 
-export function createOwn (t: TFunction): LinkOption[] {
+export function createOwn(t: TFunction): LinkOption[] {
   try {
     // this may not be available, e.g. when running via script
     const storedItems = localStorage?.getItem(CUSTOM_ENDPOINT_KEY);
@@ -59,7 +59,7 @@ export function createOwn (t: TFunction): LinkOption[] {
   return [];
 }
 
-export function createDev (t: TFunction): LinkOption[] {
+export function createDev(t: TFunction): LinkOption[] {
   return [
     {
       dnslink: 'local',
@@ -67,6 +67,20 @@ export function createDev (t: TFunction): LinkOption[] {
       text: t('rpc.local', 'Local Node', { ns: 'apps-config' }),
       textBy: '127.0.0.1:9944',
       value: 'ws://127.0.0.1:9944'
+    },
+    {
+      dnslink: 'dev',
+      info: 'dev',
+      text: t('rpc.local', 'Dev Node', { ns: 'apps-config' }),
+      textBy: 'dev.chaos.ternoa.com',
+      value: 'wss://dev.chaos.ternoa.com'
+    },
+    {
+      dnslink: 'chaos',
+      info: 'chaos',
+      text: t('rpc.local', 'Chaos Node', { ns: 'apps-config' }),
+      textBy: 'chaos.ternoa.com',
+      value: 'wss://chaos.ternoa.com'
     }
   ];
 }
