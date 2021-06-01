@@ -84,3 +84,23 @@ export function createDev(t: TFunction): LinkOption[] {
     }
   ];
 }
+
+export function createTernoa(t: TFunction): LinkOption[] {
+  return [
+    {
+      dnslink: 'dev',
+      info: 'dev',
+      text: t('rpc.local', 'Dev Node', { ns: 'apps-config' }),
+      textBy: 'dev.chaos.ternoa.com',
+      value: 'wss://dev.chaos.ternoa.com'
+    },
+    {
+      dnslink: 'chaos',
+      info: 'chaos',
+      text: t('rpc.local', 'Chaos Node', { ns: 'apps-config' }),
+      textBy: 'chaos.ternoa.com',
+      value: 'wss://chaos.ternoa.com'
+    }
+  ];
+}
+
