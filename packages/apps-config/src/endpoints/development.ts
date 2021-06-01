@@ -67,20 +67,6 @@ export function createDev(t: TFunction): LinkOption[] {
       text: t('rpc.local', 'Local Node', { ns: 'apps-config' }),
       textBy: '127.0.0.1:9944',
       value: 'ws://127.0.0.1:9944'
-    },
-    {
-      dnslink: 'dev',
-      info: 'dev',
-      text: t('rpc.local', 'Dev Node', { ns: 'apps-config' }),
-      textBy: 'dev.chaos.ternoa.com',
-      value: 'wss://dev.chaos.ternoa.com'
-    },
-    {
-      dnslink: 'chaos',
-      info: 'chaos',
-      text: t('rpc.local', 'Chaos Node', { ns: 'apps-config' }),
-      textBy: 'chaos.ternoa.com',
-      value: 'wss://chaos.ternoa.com'
     }
   ];
 }
@@ -90,14 +76,15 @@ export function createTernoa(t: TFunction): LinkOption[] {
     {
       dnslink: 'dev',
       info: 'dev',
-      text: t('rpc.local', 'Dev Node', { ns: 'apps-config' }),
+      isDevelopment: true,
+      text: t('rpc.ternoa-chaos', 'Dev Node', { ns: 'apps-config' }),
       textBy: 'dev.chaos.ternoa.com',
       value: 'wss://dev.chaos.ternoa.com'
     },
     {
       dnslink: 'chaos',
       info: 'chaos',
-      text: t('rpc.local', 'Chaos Node', { ns: 'apps-config' }),
+      text: t('rpc.ternoa-chaos', 'Chaos Node', { ns: 'apps-config' }),
       textBy: 'chaos.ternoa.com',
       value: 'wss://chaos.ternoa.com'
     }
