@@ -13,7 +13,7 @@ const definitions: OverrideBundleDefinition = {
       minmax: [0, undefined],
       types: {
         AccountDataOf: 'AccountData',
-        Address: 'AccountId',
+        Address: 'MultiAddress',
         NFTId: 'u32',
         NFTIdOf: 'NFTId',
         NFTSeriesId: 'u32',
@@ -28,7 +28,7 @@ const definitions: OverrideBundleDefinition = {
           series_id: 'NFTSeriesId',
           is_capsule: 'bool'
         },
-        LookupSource: 'AccountId',
+        LookupSource: 'MultiAddress',
         NFTSeriesDetails: {
           owner: 'AccountId',
           nfts: 'Vec<NFTId>'
