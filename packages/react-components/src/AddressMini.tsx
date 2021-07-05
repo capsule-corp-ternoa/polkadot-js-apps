@@ -1,10 +1,10 @@
 // Copyright 2017-2021 @polkadot/app-staking authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
+import type BN from 'bn.js';
 import type { AccountId, AccountIndex, Address } from '@polkadot/types/interfaces';
 import type { KeyringItemType } from '@polkadot/ui-keyring/types';
 
-import BN from 'bn.js';
 import React from 'react';
 import styled from 'styled-components';
 
@@ -26,6 +26,7 @@ interface Props {
   isShort?: boolean;
   label?: React.ReactNode;
   labelBalance?: React.ReactNode;
+  nameExtra?: React.ReactNode;
   summary?: React.ReactNode;
   type?: KeyringItemType;
   value?: AccountId | AccountIndex | Address | string | null | Uint8Array;
@@ -38,7 +39,7 @@ interface Props {
   withShrink?: boolean;
 }
 
-function AddressMini ({ balance, bonded, children, className = '', iconInfo, isHighlight, isPadded = true, label, labelBalance, summary, value, withAddress = true, withBalance = false, withBonded = false, withLockedVote = false, withName = true, withShrink = false, withSidebar = true }: Props): React.ReactElement<Props> | null {
+function AddressMini ({ balance, bonded, children, className = '', iconInfo, isHighlight, isPadded = true, label, labelBalance, nameExtra, summary, value, withAddress = true, withBalance = false, withBonded = false, withLockedVote = false, withName = true, withShrink = false, withSidebar = true }: Props): React.ReactElement<Props> | null {
   if (!value) {
     return null;
   }
@@ -64,7 +65,9 @@ function AddressMini ({ balance, bonded, children, className = '', iconInfo, isH
                 <AccountName
                   value={value}
                   withSidebar={withSidebar}
-                />
+                >
+                  {nameExtra}
+                </AccountName>
               )
               : toShortAddress(value)
             }

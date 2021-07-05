@@ -2,88 +2,54 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type BN from 'bn.js';
-import type { StorageKey } from '@polkadot/types';
-import type { EventRecord, ParaId } from '@polkadot/types/interfaces';
 import type { Campaign, LeasePeriod } from '../types';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
-import { AddressMini, Digits, Icon, ParaLink, TxButton } from '@polkadot/react-components';
-import { useAccounts, useApi, useEventTrigger } from '@polkadot/react-hooks';
+import { AddressMini, Expander, Icon, ParaLink, Spinner, TxButton } from '@polkadot/react-components';
+import { useAccounts, useApi, useParaEndpoints } from '@polkadot/react-hooks';
 import { BlockToTime, FormatBalance } from '@polkadot/react-query';
 import { formatNumber } from '@polkadot/util';
-import { encodeAddress } from '@polkadot/util-crypto';
 
 import { useTranslation } from '../translate';
 import Contribute from './Contribute';
 import Refund from './Refund';
+import useContributions from './useContributions';
 
 interface Props {
+  bestHash?: string;
   bestNumber?: BN;
   className?: string;
+  isOdd?: boolean;
   isOngoing?: boolean;
   leasePeriod?: LeasePeriod;
   value: Campaign;
 }
 
-interface Contributions {
-  uniqueKeys: string[];
-  myAccounts: string[];
+interface LastChange {
+  prevHash: string;
+  prevLength: number;
 }
 
-const NO_CONTRIB: Contributions = { myAccounts: [], uniqueKeys: [] };
-
-function extractContributors (allAccounts: string[], keys: StorageKey[]): Contributions {
-  const uniqueKeys = keys.map((k) => k.toHex());
-  const contributors = keys.map((k) => encodeAddress(k));
-
-  return {
-    myAccounts: contributors.filter((c) => allAccounts.includes(c)),
-    uniqueKeys
-  };
-}
-
-function Fund ({ bestNumber, className, isOngoing, leasePeriod, value: { childKey, info: { cap, depositor, end, firstSlot, lastSlot, raised, retiring }, isCapped, isEnded, isRetired, isWinner, paraId, retireEnd } }: Props): React.ReactElement<Props> {
+function Fund ({ bestHash, bestNumber, className, isOdd, isOngoing, leasePeriod, value: { childKey, info: { cap, depositor, end, firstPeriod, lastPeriod, raised, verifier }, isCapped, isEnded, isWinner, paraId } }: Props): React.ReactElement<Props> {
   const { t } = useTranslation();
   const { api } = useApi();
-  const { allAccounts, isAccount } = useAccounts();
-  const [{ myAccounts, uniqueKeys }, setContributors] = useState<Contributions>(NO_CONTRIB);
-  const trigger = useEventTrigger([api.events.crowdloan.Contributed, api.events.crowdloan.Withdrew], useCallback(
-    ({ event: { data: [, fundIndex] } }: EventRecord) =>
-      (fundIndex as ParaId).eq(paraId),
-    [paraId]
-  ));
-
-  useEffect((): void => {
-    trigger &&
-      api.rpc.childstate
-        .getKeys(childKey, '0x')
-        .then((keys) => setContributors(
-          extractContributors(allAccounts, keys))
-        )
-        .catch(console.error);
-  }, [allAccounts, api, childKey, trigger]);
+  const { isAccount } = useAccounts();
+  const endpoints = useParaEndpoints(paraId);
+  const { blockHash: contribHash, contributorsHex, myAccounts, myAccountsHex, myContributions } = useContributions(paraId, childKey);
+  const [lastChange, setLastChange] = useState<LastChange>(() => ({ prevHash: '', prevLength: 0 }));
 
   const isDepositor = useMemo(
     () => isAccount(depositor.toString()),
     [depositor, isAccount]
   );
 
-  const [blocksLeft, retiringLeft] = useMemo(
-    () => bestNumber
-      ? [
-        end.gt(bestNumber)
-          ? end.sub(bestNumber)
-          : null,
-        retireEnd?.gt(bestNumber)
-          ? retireEnd.sub(bestNumber)
-          : null
-      ]
-      : [null, null],
-    [bestNumber, end, retireEnd]
+  const blocksLeft = useMemo(
+    () => bestNumber && end.gt(bestNumber)
+      ? end.sub(bestNumber)
+      : null,
+    [bestNumber, end]
   );
-
-  // TODO Dissolve should look at retirement and the actual period
 
   const percentage = useMemo(
     () => cap.isZero()
@@ -92,57 +58,55 @@ function Fund ({ bestNumber, className, isOngoing, leasePeriod, value: { childKe
     [cap, raised]
   );
 
-  const isLeaseOver = !blocksLeft && !!leasePeriod && (
+  const hasEnded = !blocksLeft && !!leasePeriod && (
     isWinner
-      ? leasePeriod.currentPeriod.gt(lastSlot)
-      : leasePeriod.currentPeriod.gt(firstSlot)
+      ? leasePeriod.currentPeriod.gt(lastPeriod)
+      : leasePeriod.currentPeriod.gt(firstPeriod)
   );
-  const canContribute = !!blocksLeft && isOngoing && !isCapped && !isWinner && retiring.isFalse;
-  const canDissolve = raised.isZero() || (retiring.isTrue && isLeaseOver);
-  const canWithdraw = !raised.isZero() && isLeaseOver;
+  const canContribute = isOngoing && !isCapped && !isWinner && !!blocksLeft;
+  const canDissolve = raised.isZero();
+  const canWithdraw = !raised.isZero() && hasEnded;
+  const homepage = endpoints.length !== 0 && endpoints[0].homepage;
+
+  useEffect((): void => {
+    setLastChange((prev): LastChange => {
+      const prevLength = contributorsHex.length;
+
+      return prev.prevLength !== prevLength
+        ? { prevHash: contribHash, prevLength }
+        : prev;
+    });
+  }, [contributorsHex, contribHash]);
 
   return (
-    <tr className={className}>
+    <tr className={`${className || ''} ${isOdd ? 'isOdd' : 'isEven'}`}>
       <td className='number'><h1>{formatNumber(paraId)}</h1></td>
       <td className='badge'><ParaLink id={paraId} /></td>
-      <td>
+      <td className='media--800'>
         {isWinner
           ? t<string>('Winner')
-          : isRetired
-            ? retiring.isTrue
-              ? t<string>('Retired')
-              : t<string>('Completed')
-            : retiring.isTrue
-              ? t<string>('Retiring')
-              : blocksLeft
-                ? isCapped
-                  ? t<string>('Capped')
-                  : isOngoing
-                    ? t<string>('Active')
-                    : t<string>('Past')
-                : t<string>('Ended')
+          : blocksLeft
+            ? isCapped
+              ? t<string>('Capped')
+              : isOngoing
+                ? t<string>('Active')
+                : t<string>('Past')
+            : t<string>('Ended')
         }
       </td>
       <td className='address media--1400'><AddressMini value={depositor} /></td>
-      {!isOngoing && (
-        <td className='all number together'>
-          {(isRetired || retiring.isTrue) && (
-            <>
-              {retiringLeft && (
-                <BlockToTime value={retiringLeft} />
-              )}
-              #{formatNumber(retireEnd)}
-            </>
-          )}
-        </td>
-      )}
-      <td className={`all number together${isOngoing ? '' : ' media--1200'}`}>
+      <td className='all number together media--1200'>
         {blocksLeft && (
           <BlockToTime value={blocksLeft} />
         )}
         #{formatNumber(end)}
       </td>
-      <td className='number'><Digits value={`${formatNumber(firstSlot)} - ${formatNumber(lastSlot)}`} /></td>
+      <td className='number all together'>
+        {firstPeriod.eq(lastPeriod)
+          ? formatNumber(firstPeriod)
+          : `${formatNumber(firstPeriod)} - ${formatNumber(lastPeriod)}`
+        }
+      </td>
       <td className='number together'>
         <FormatBalance
           value={raised}
@@ -151,29 +115,52 @@ function Fund ({ bestNumber, className, isOngoing, leasePeriod, value: { childKe
           value={cap}
         />
         <div>{percentage}</div>
-      </td>
-      <td className='number media--1100'>
-        {uniqueKeys.length !== 0 && (
-          formatNumber(uniqueKeys.length)
+        {myAccounts.length !== 0 && (
+          <Expander
+            summary={t<string>('My contributions ({{count}})', { replace: { count: myAccounts.length } })}
+            withBreaks
+          >
+            {myAccounts.map((a, index) => (
+              <AddressMini
+                balance={myContributions[myAccountsHex[index]]}
+                key={a}
+                value={a}
+                withBalance
+              />
+            ))}
+          </Expander>
         )}
       </td>
-      <td className='badge'>
-        <Icon
-          color={myAccounts.length ? 'green' : 'gray'}
-          icon='asterisk'
-        />
+      <td className='number together media--1100'>
+        {contribHash === '-'
+          ? <Spinner noLabel />
+          : (
+            <>
+              {bestHash && (
+                <Icon
+                  color={
+                    lastChange.prevHash === bestHash
+                      ? 'green'
+                      : 'transparent'
+                  }
+                  icon='chevron-up'
+                  isPadded
+                />
+              )}
+              {contributorsHex.length !== 0 && (
+                formatNumber(contributorsHex.length)
+              )}
+            </>
+          )}
       </td>
-      <td className='button'>
-        {canWithdraw && uniqueKeys.length !== 0 && (
-          <Refund
-            allAccounts={uniqueKeys}
-            myAccounts={myAccounts}
-            paraId={paraId}
-          />
+      <td className='button media--1000'>
+        {canWithdraw && contributorsHex.length !== 0 && (
+          <Refund paraId={paraId} />
         )}
         {canDissolve && (
           <TxButton
             accountId={depositor}
+            className='media--1400'
             icon='times'
             isDisabled={!isDepositor}
             label={
@@ -188,9 +175,19 @@ function Fund ({ bestNumber, className, isOngoing, leasePeriod, value: { childKe
         {isOngoing && canContribute && (
           <Contribute
             cap={cap}
+            needsSignature={verifier.isSome}
             paraId={paraId}
             raised={raised}
           />
+        )}
+        {isOngoing && homepage && (
+          <div>
+            <a
+              href={homepage}
+              rel='noopener noreferrer'
+              target='_blank'
+            >{t<string>('Homepage')}</a>&nbsp;&nbsp;&nbsp;
+          </div>
         )}
       </td>
     </tr>
