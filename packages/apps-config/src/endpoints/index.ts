@@ -4,7 +4,7 @@
 import type { TFunction } from 'i18next';
 import type { LinkOption } from './types';
 
-import { createCustom, createDev, createOwn } from './development';
+import { createCustom, createDev, createOwn, createTernoa } from './development';
 import { createProduction } from './production';
 import { createKusamaRelay, createPolkadotRelay } from './productionRelays';
 import { createTesting } from './testing';
@@ -12,8 +12,16 @@ import { createRococoRelay, createWestendRelay } from './testingRelays';
 
 export { CUSTOM_ENDPOINT_KEY } from './development';
 
-export function createWsEndpoints (t: TFunction, firstOnly?: boolean): LinkOption[] {
+export function createWsEndpoints(t: TFunction, firstOnly?: boolean): LinkOption[] {
   return [
+    {
+      isDisabled: false,
+      isHeader: true,
+      text: t('rpc.header.test', 'Ternoa networks', { ns: 'apps-config' }),
+      textBy: '',
+      value: ''
+    },
+    ...createTernoa(t),
     ...createCustom(t),
     {
       isDisabled: false,
