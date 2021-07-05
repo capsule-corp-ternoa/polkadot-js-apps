@@ -6,7 +6,7 @@ import type { AuctionInfo, WinnerData } from '../types';
 
 import React from 'react';
 
-import { AddressMini, Digits, ParaLink } from '@polkadot/react-components';
+import { AddressMini, ParaLink } from '@polkadot/react-components';
 import { FormatBalance } from '@polkadot/react-query';
 import { formatNumber } from '@polkadot/util';
 
@@ -14,7 +14,7 @@ import { useTranslation } from '../translate';
 
 interface Props {
   auctionInfo: AuctionInfo;
-  blockNumber: BN;
+  blockNumber?: BN;
   className?: string;
   isFirst: boolean;
   isLatest: boolean;
@@ -30,7 +30,7 @@ function WinRanges ({ auctionInfo, blockNumber, className = '', isFirst, isLates
         {isFirst && (
           <h1>{isLatest
             ? t<string>('latest')
-            : <>#{formatNumber(blockNumber.isZero() ? auctionInfo.endBlock : blockNumber)}</>
+            : <>#{formatNumber((!blockNumber || blockNumber.isZero()) ? auctionInfo.endBlock : blockNumber)}</>
           }</h1>
         )}
       </td>
@@ -38,8 +38,11 @@ function WinRanges ({ auctionInfo, blockNumber, className = '', isFirst, isLates
       <td className='badge'><ParaLink id={paraId} /></td>
       <td className='address'><AddressMini value={accountId} /></td>
       <td className='all number'>{isCrowdloan ? t<string>('Yes') : t<string>('No')}</td>
-      <td className='all number'>
-        <Digits value={`${formatNumber(firstSlot)} - ${formatNumber(lastSlot)}`} />
+      <td className='all number together'>
+        {firstSlot.eq(lastSlot)
+          ? formatNumber(firstSlot)
+          : `${formatNumber(firstSlot)} - ${formatNumber(lastSlot)}`
+        }
       </td>
       <td className='number'><FormatBalance value={value} /></td>
     </tr>

@@ -16,12 +16,11 @@ import democracy from './democracy';
 import explorer from './explorer';
 import extrinsics from './extrinsics';
 import gilt from './gilt';
-import fincomm from './fincomm';
 import js from './js';
+import membership from './membership';
 import parachains from './parachains';
 import poll from './poll';
 import rpc from './rpc';
-import rootcomm from './rootcomm';
 import settings from './settings';
 import signing from './signing';
 import society from './society';
@@ -29,6 +28,7 @@ import staking from './staking';
 import storage from './storage';
 import sudo from './sudo';
 import techcomm from './techcomm';
+import teleport from './teleport';
 import transfer from './transfer';
 import treasury from './treasury';
 
@@ -40,14 +40,14 @@ export default function create (t: TFunction): Routes {
     claims(t),
     poll(t),
     transfer(t),
+    teleport(t),
     staking(t),
     democracy(t),
     council(t),
     treasury(t),
     bounties(t),
     techcomm(t),
-    fincomm(t),
-    rootcomm(t),
+    membership(t),
     parachains(t),
     gilt(t),
     assets(t),

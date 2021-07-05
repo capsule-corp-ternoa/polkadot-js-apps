@@ -1,14 +1,14 @@
 // Copyright 2017-2021 @polkadot/apps-config authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import BN from 'bn.js';
+import type BN from 'bn.js';
 
 import { externalLogos } from '../ui/logos';
 
 export default {
   chains: {
     'Acala Mandala TC5': 'acala-testnet',
-    'Bifrost Asgard Nightly': 'bitfrost',
+    'Bifrost Asgard Nightly': 'bifrost',
     'Centrifuge Mainnet': 'centrifuge',
     ChainX: 'chainx',
     'Crust Maxwell': 'crust',
@@ -19,7 +19,7 @@ export default {
     Kulupu: 'kulupu',
     Kusama: 'kusama',
     'Laminar Turbulence TC2': 'laminar-testnet',
-    'Phala PoC-3': 'phala',
+    'Phala PoC-4': 'phala',
     Plasm: 'plasm',
     Polkadot: 'polkadot',
     Rococo: 'rococo',

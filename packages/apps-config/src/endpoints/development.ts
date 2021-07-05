@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { TFunction } from 'i18next';
-import type { LinkOption } from '../settings/types';
+import type { LinkOption } from './types';
 
 export const CUSTOM_ENDPOINT_KEY = 'polkadot-app-custom-endpoints';
 
@@ -13,7 +13,7 @@ interface EnvWindow {
   }
 }
 
-export function createCustom(t: TFunction): LinkOption[] {
+export function createCustom (t: TFunction): LinkOption[] {
   const WS_URL = (
     (typeof process !== 'undefined' ? process.env?.WS_URL : undefined) ||
     (typeof window !== 'undefined' ? (window as EnvWindow).process_env?.WS_URL : undefined)
@@ -23,13 +23,13 @@ export function createCustom(t: TFunction): LinkOption[] {
     ? [
       {
         isHeader: true,
-        text: t('rpc.custom', 'Custom environment', { ns: 'apps-config' }),
+        text: t('rpc.dev.custom', 'Custom environment', { ns: 'apps-config' }),
         textBy: '',
         value: ''
       },
       {
         info: 'WS_URL',
-        text: t('rpc.custom.entry', 'Custom {{WS_URL}}', { ns: 'apps-config', replace: { WS_URL } }),
+        text: t('rpc.dev.custom.entry', 'Custom {{WS_URL}}', { ns: 'apps-config', replace: { WS_URL } }),
         textBy: WS_URL,
         value: WS_URL
       }
@@ -37,7 +37,7 @@ export function createCustom(t: TFunction): LinkOption[] {
     : [];
 }
 
-export function createOwn(t: TFunction): LinkOption[] {
+export function createOwn (t: TFunction): LinkOption[] {
   try {
     // this may not be available, e.g. when running via script
     const storedItems = localStorage?.getItem(CUSTOM_ENDPOINT_KEY);
@@ -47,7 +47,7 @@ export function createOwn(t: TFunction): LinkOption[] {
 
       return items.map((textBy) => ({
         info: 'local',
-        text: t('rpc.custom.own', 'Custom', { ns: 'apps-config' }),
+        text: t('rpc.dev.custom.own', 'Custom', { ns: 'apps-config' }),
         textBy,
         value: textBy
       }));
@@ -59,35 +59,14 @@ export function createOwn(t: TFunction): LinkOption[] {
   return [];
 }
 
-export function createDev(t: TFunction): LinkOption[] {
+export function createDev (t: TFunction): LinkOption[] {
   return [
     {
       dnslink: 'local',
       info: 'local',
-      text: t('rpc.local', 'Local Node', { ns: 'apps-config' }),
+      text: t('rpc.dev.local', 'Local Node', { ns: 'apps-config' }),
       textBy: '127.0.0.1:9944',
       value: 'ws://127.0.0.1:9944'
     }
   ];
 }
-
-export function createTernoa(t: TFunction): LinkOption[] {
-  return [
-    {
-      dnslink: 'dev',
-      info: 'dev',
-      isDevelopment: true,
-      text: t('rpc.ternoa-chaos', 'Dev Node', { ns: 'apps-config' }),
-      textBy: 'dev.chaos.ternoa.com',
-      value: 'wss://dev.chaos.ternoa.com'
-    },
-    {
-      dnslink: 'chaos',
-      info: 'chaos',
-      text: t('rpc.ternoa-chaos', 'Chaos Node', { ns: 'apps-config' }),
-      textBy: 'chaos.ternoa.com',
-      value: 'wss://chaos.ternoa.com'
-    }
-  ];
-}
-

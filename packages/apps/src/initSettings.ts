@@ -9,7 +9,7 @@ import { extractIpfsDetails } from '@polkadot/react-hooks/useIpfs';
 import { settings } from '@polkadot/ui-settings';
 import { assert } from '@polkadot/util';
 
-function getApiUrl(): string {
+function getApiUrl (): string {
   // we split here so that both these forms are allowed
   //  - http://localhost:3000/?rpc=wss://substrate-rpc.parity.io/#/explorer
   //  - http://localhost:3000/#/explorer?rpc=wss://substrate-rpc.parity.io
@@ -35,19 +35,18 @@ function getApiUrl(): string {
     const option = endpoints.find(({ dnslink }) => dnslink === ipnsChain);
 
     if (option) {
-      return option.value as string;
+      return option.value;
     }
   }
 
   const stored = store.get('settings') as Record<string, unknown> || {};
-  const ternoaUrl = endpoints.find(({ value }) => value === "wss://chaos.ternoa.com");
-  const fallbackUrl = ternoaUrl ? ternoaUrl : endpoints.find(({ value }) => !!value);
+  const fallbackUrl = endpoints.find(({ value }) => !!value);
 
   // via settings, or the default chain
   return [stored.apiUrl, process.env.WS_URL].includes(settings.apiUrl)
     ? settings.apiUrl // keep as-is
     : fallbackUrl
-      ? fallbackUrl.value as string // grab the fallback
+      ? fallbackUrl.value // grab the fallback
       : 'ws://127.0.0.1:9944'; // nothing found, go local
 }
 

@@ -1,26 +1,27 @@
 // Copyright 2017-2021 @polkadot/app-parachains authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
+import type BN from 'bn.js';
 import type { ApiPromise } from '@polkadot/api';
 import type { SignedBlockExtended } from '@polkadot/api-derive/types';
-import type { Option, StorageKey } from '@polkadot/types';
-import type { AccountId, CandidateReceipt, Event, HrmpChannel, HrmpChannelId, ParaId, ParaValidatorIndex } from '@polkadot/types/interfaces';
+import type { AccountId, CandidateReceipt, CoreAssignment, Event, GroupIndex, ParaId, ParaValidatorIndex } from '@polkadot/types/interfaces';
 import type { IEvent } from '@polkadot/types/types';
-import type { ScheduledProposals } from '../types';
-import type { ChannelMap, EventMapInfo, QueuedAction, ValidatorInfo } from './types';
+import type { LeasePeriod, QueuedAction, ScheduledProposals } from '../types';
+import type { EventMapInfo, ValidatorInfo } from './types';
 
-import BN from 'bn.js';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Table } from '@polkadot/react-components';
-import { useApi, useBestNumber, useCall, useCallMulti } from '@polkadot/react-hooks';
+import { useApi, useBestNumber, useCall, useCallMulti, useIsParasLinked } from '@polkadot/react-hooks';
 
 import { useTranslation } from '../translate';
+import useHrmp from '../useHrmp';
 import Parachain from './Parachain';
 
 interface Props {
   actionsQueue: QueuedAction[];
   ids?: ParaId[];
+  leasePeriod?: LeasePeriod;
   scheduled?: ScheduledProposals[];
 }
 
@@ -32,12 +33,12 @@ interface LastEvents {
   lastTimeout: EventMap;
 }
 
-type MultiResult = [AccountId[] | null, ParaValidatorIndex[][] | null, ParaValidatorIndex[] | null];
+type MultiResult = [AccountId[] | null, CoreAssignment[] | null, ParaValidatorIndex[][] | null, ParaValidatorIndex[] | null];
 
 const EMPTY_EVENTS: LastEvents = { lastBacked: {}, lastIncluded: {}, lastTimeout: {} };
 
 const optionsMulti = {
-  defaultValue: [null, null, null] as MultiResult
+  defaultValue: [null, null, null, null] as MultiResult
 };
 
 function includeEntry (map: EventMap, event: Event, blockHash: string, blockNumber: BN): void {
@@ -60,19 +61,31 @@ function extractScheduledIds (scheduled: ScheduledProposals[] = []): Record<stri
     }), all), {});
 }
 
-function mapValidators (ids: ParaId[] | undefined, validators: AccountId[] | null, validatorGroups: ParaValidatorIndex[][] | null, activeIndices: ParaValidatorIndex[] | null): ValidatorInfo[][] {
-  return activeIndices && validators && validatorGroups && ids && ids.length === validatorGroups.length
-    ? validatorGroups.map((indices) =>
-      indices
-        .map((indexActive) => [indexActive, activeIndices[indexActive.toNumber()]])
-        .filter(([, a]) => a)
-        .map(([indexActive, indexValidator]) => ({
-          indexActive,
-          indexValidator,
-          validatorId: validators[indexValidator.toNumber()]
-        }))
-    )
-    : [];
+function mapValidators (startWith: Record<string, [GroupIndex, ValidatorInfo[]]>, ids: ParaId[] | undefined, validators: AccountId[] | null, validatorGroups: ParaValidatorIndex[][] | null, activeIndices: ParaValidatorIndex[] | null, assignments: CoreAssignment[] | null): Record<string, [GroupIndex, ValidatorInfo[]]> {
+  return assignments && activeIndices && validators && validatorGroups && ids
+    ? ids.reduce((all: Record<string, [GroupIndex, ValidatorInfo[]]>, id) => {
+      const assignment = assignments.find(({ paraId }) => paraId.eq(id));
+
+      if (!assignment) {
+        return all;
+      }
+
+      return {
+        ...all,
+        [id.toString()]: [
+          assignment.groupIdx,
+          validatorGroups[assignment.groupIdx.toNumber()]
+            .map((indexActive) => [indexActive, activeIndices[indexActive.toNumber()]])
+            .filter(([, a]) => a)
+            .map(([indexActive, indexValidator]) => ({
+              indexActive,
+              indexValidator,
+              validatorId: validators[indexValidator.toNumber()]
+            }))
+        ]
+      };
+    }, { ...startWith })
+    : startWith;
 }
 
 function extractEvents (api: ApiPromise, lastBlock: SignedBlockExtended, prev: LastEvents): LastEvents {
@@ -87,13 +100,13 @@ function extractEvents (api: ApiPromise, lastBlock: SignedBlockExtended, prev: L
 
   lastBlock.events.forEach(({ event, phase }) => {
     if (phase.isApplyExtrinsic) {
-      if (api.events.inclusion.CandidateBacked.is(event)) {
+      if ((api.events.parasInclusion || api.events.inclusion)?.CandidateBacked.is(event)) {
         includeEntry(backed, event, blockHash, blockNumber);
         wasBacked = true;
-      } else if (api.events.inclusion.CandidateIncluded.is(event)) {
+      } else if ((api.events.parasInclusion || api.events.inclusion)?.CandidateIncluded.is(event)) {
         includeEntry(included, event, blockHash, blockNumber);
         wasIncluded = true;
-      } else if (api.events.inclusion.CandidateTimedOut.is(event)) {
+      } else if ((api.events.parasInclusion || api.events.inclusion)?.CandidateTimedOut.is(event)) {
         includeEntry(timeout, event, blockHash, blockNumber);
         wasTimeout = true;
       }
@@ -115,29 +128,6 @@ function extractEvents (api: ApiPromise, lastBlock: SignedBlockExtended, prev: L
     : prev;
 }
 
-const optChannelKeys = {
-  transform: (keys: StorageKey<[HrmpChannelId]>[]): HrmpChannelId[] =>
-    keys.map(({ args: [id] }) => id)
-};
-
-const optChannels = {
-  transform: ([[channelIds], channels]: [[HrmpChannelId[]], Option<HrmpChannel>[]]): [ChannelMap, ChannelMap] =>
-    channelIds
-      .map((id, index): [HrmpChannelId, Option<HrmpChannel>] => [id, channels[index]])
-      .filter(([, opt]) => opt.isSome)
-      .map(([id, opt]): [HrmpChannelId, HrmpChannel] => [id, opt.unwrap()])
-      .reduce(([src, dst]: [ChannelMap, ChannelMap], [id, channel]): [ChannelMap, ChannelMap] => {
-        dst[id.receiver.toNumber()] ||= [];
-        src[id.sender.toNumber()] ||= [];
-
-        dst[id.receiver.toNumber()].push([id, channel]);
-        src[id.sender.toNumber()].push([id, channel]);
-
-        return [src, dst];
-      }, [{}, {}]),
-  withParamsTransform: true
-};
-
 function extractActions (actionsQueue: QueuedAction[], knownIds?: [ParaId, string][]): Record<string, QueuedAction | undefined> {
   return actionsQueue && knownIds
     ? knownIds.reduce((all: Record<string, QueuedAction | undefined>, [id, key]) => ({
@@ -147,32 +137,49 @@ function extractActions (actionsQueue: QueuedAction[], knownIds?: [ParaId, strin
     : {};
 }
 
-function Parachains ({ actionsQueue, ids, scheduled }: Props): React.ReactElement<Props> {
+function extractIds (hasLinksMap: Record<string, boolean>, ids?: ParaId[]): [ParaId, string][] | undefined {
+  return ids
+    ?.map((id): [ParaId, string] => [id, id.toString()])
+    .sort(([aId, aIds], [bId, bIds]): number => {
+      const aKnown = hasLinksMap[aIds] || false;
+      const bKnown = hasLinksMap[bIds] || false;
+
+      return aKnown === bKnown
+        ? aId.cmp(bId)
+        : aKnown
+          ? -1
+          : 1;
+    });
+}
+
+function Parachains ({ actionsQueue, ids, leasePeriod, scheduled }: Props): React.ReactElement<Props> {
   const { t } = useTranslation();
   const { api } = useApi();
   const bestNumber = useBestNumber();
   const lastBlock = useCall<SignedBlockExtended>(api.derive.chain.subscribeNewBlocks);
   const [{ lastBacked, lastIncluded, lastTimeout }, setLastEvents] = useState<LastEvents>(EMPTY_EVENTS);
-  const [validators, validatorGroups, activeIndices] = useCallMulti<MultiResult>([
-    api.query.session?.validators,
-    api.query.paraScheduler?.validatorGroups || api.query.scheduler?.validatorGroups,
-    api.query.shared?.activeValidatorIndices
+  const [validators, assignments, validatorGroups, validatorIndices] = useCallMulti<MultiResult>([
+    api.query.session.validators,
+    (api.query.parasScheduler || api.query.paraScheduler || api.query.scheduler)?.scheduled,
+    (api.query.parasScheduler || api.query.paraScheduler || api.query.scheduler)?.validatorGroups,
+    (api.query.parasShared || api.query.shared)?.activeValidatorIndices
   ], optionsMulti);
-  const channelIds = useCall<HrmpChannelId[]>(api.query.hrmp?.hrmpChannels.keys, undefined, optChannelKeys);
-  const allChannels = useCall<[ChannelMap, ChannelMap]>(channelIds && api.query.hrmp.hrmpChannels.multi, [channelIds], optChannels);
+  const hrmp = useHrmp();
+  const hasLinksMap = useIsParasLinked(ids);
+  const [validatorMap, setValidatorMap] = useState<Record<string, [GroupIndex, ValidatorInfo[]]>>({});
 
   const headerRef = useRef([
     [t('parachains'), 'start', 2],
-    ['', 'media--1500'],
-    [t('head'), 'start'],
-    [t('lifecycle'), 'start media--1100'],
+    ['', 'media--1400'],
+    [t('head'), 'start media--1500'],
+    [t('lifecycle'), 'start'],
     [],
     [t('included'), undefined, 2],
-    [t('backed'), 'no-pad-left'],
-    [t('timeout'), 'no-pad-left'],
-    [t('chain best'), 'media--900 no-pad-left'],
-    [t('upgrade'), 'media--1200'],
-    [t('ump/dmp/hrmp'), 'media--1300']
+    [t('backed'), 'no-pad-left media--800'],
+    [t('timeout'), 'no-pad-left media--900'],
+    [t('chain'), 'no-pad-left'],
+    [t('in/out (msg)'), 'media--1200', 2],
+    [t('leases'), 'media--1000']
   ]);
 
   const scheduledIds = useMemo(
@@ -180,14 +187,9 @@ function Parachains ({ actionsQueue, ids, scheduled }: Props): React.ReactElemen
     [scheduled]
   );
 
-  const validatorMap = useMemo(
-    () => mapValidators(ids, validators, validatorGroups, activeIndices),
-    [activeIndices, ids, validators, validatorGroups]
-  );
-
   const knownIds = useMemo(
-    () => ids?.map((id): [ParaId, string] => [id, id.toString()]),
-    [ids]
+    () => extractIds(hasLinksMap, ids),
+    [ids, hasLinksMap]
   );
 
   const nextActions = useMemo(
@@ -201,25 +203,32 @@ function Parachains ({ actionsQueue, ids, scheduled }: Props): React.ReactElemen
     );
   }, [api, lastBlock]);
 
+  useEffect((): void => {
+    setValidatorMap((prev) =>
+      mapValidators(prev, ids, validators, validatorGroups, validatorIndices, assignments)
+    );
+  }, [assignments, ids, validators, validatorGroups, validatorIndices]);
+
   return (
     <Table
       empty={knownIds && t<string>('There are no registered parachains')}
       header={headerRef.current}
     >
-      {knownIds?.map(([id, key], index): React.ReactNode => (
+      {knownIds?.map(([id, key]): React.ReactNode => (
         <Parachain
           bestNumber={bestNumber}
-          channelDst={allChannels?.[1][id.toNumber()]}
-          channelSrc={allChannels?.[0][id.toNumber()]}
+          channelDst={hrmp?.dst[id.toString()]}
+          channelSrc={hrmp?.src[id.toString()]}
           id={id}
           isScheduled={scheduledIds[key]}
           key={key}
           lastBacked={lastBacked[key]}
           lastInclusion={lastIncluded[key]}
           lastTimeout={lastTimeout[key]}
+          leasePeriod={leasePeriod}
           nextAction={nextActions[key]}
           sessionValidators={validators}
-          validators={validatorMap[index]}
+          validators={validatorMap[key]}
         />
       ))}
     </Table>
